@@ -51,7 +51,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 
   sendTokenCookie(res, token);
 
-  logger.info(`User signed up: ${email} (${userRole})`);
+  logger.info(`User signed up: ${email} (${user.role})`);
 
   res.status(201).json({
     status: "success",

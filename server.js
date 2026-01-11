@@ -3,7 +3,7 @@ dotenv.config();
 const express = require("express");
 const path = require("path");
 const cookieParser = require("cookie-parser");
-const  connectDB  = require("./config/db.Config");
+const connectDB = require("./config/db.Config");
 const corsHandler = require("./middlewares/cors.Handler");
 const logger = require("./utilts/logger");
 
@@ -11,6 +11,8 @@ const AppError = require("./utilts/app.Error");
 const errorHandler = require("./middlewares/error.Handler");
 const authRoute = require("./routes/auth.Route");
 const userRoute = require("./routes/user.Route");
+const gameRoute = require("./routes/game.Route");
+
 process.on("uncaughtException", (err) => {
   logger.error("UNCAUGHT EXCEPTION! Shutting down...");
   logger.error(`${err.name}: ${err.message}`);
@@ -20,7 +22,6 @@ process.on("uncaughtException", (err) => {
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
 
 app.use(corsHandler);
 
@@ -32,17 +33,12 @@ app.use("/img", express.static(path.join(__dirname, "uploads")));
 
 connectDB();
 
-
 app.use("/api/auth", authRoute);
 app.use("/api/users", userRoute);
+app.use("/api/games", gameRoute);
 
 app.use((req, res, next) => {
-  next(
-    new AppError(
-      `Can't find ${req.originalUrl} on this server`,
-      404
-    )
-  );
+  next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
 });
 
 app.use(errorHandler);
