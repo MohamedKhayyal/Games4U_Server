@@ -6,12 +6,15 @@ const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db.Config");
 const corsHandler = require("./middlewares/cors.Handler");
 const logger = require("./utilts/logger");
-
 const AppError = require("./utilts/app.Error");
 const errorHandler = require("./middlewares/error.Handler");
 const authRoute = require("./routes/auth.Route");
 const userRoute = require("./routes/user.Route");
 const gameRoute = require("./routes/game.Route");
+const deviceRoute = require("./routes/device.Route");
+const bannerRoute = require("./routes/banner.Route");
+
+// const process = require("process");
 
 process.on("uncaughtException", (err) => {
   logger.error("UNCAUGHT EXCEPTION! Shutting down...");
@@ -36,6 +39,8 @@ connectDB();
 app.use("/api/auth", authRoute);
 app.use("/api/users", userRoute);
 app.use("/api/games", gameRoute);
+app.use("/api/devices", deviceRoute);
+app.use("/api/banners", bannerRoute);
 
 app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));

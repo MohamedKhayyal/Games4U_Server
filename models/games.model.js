@@ -23,7 +23,6 @@ const gameSchema = new mongoose.Schema(
       trim: true,
       maxlength: 2000,
     },
-
     price: {
       type: Number,
       required: [true, "Game price is required"],
@@ -102,22 +101,22 @@ const gameSchema = new mongoose.Schema(
   }
 );
 
-gameSchema.pre("save", function (next) {
-  // slug
+gameSchema.pre("save", function () {
   if (this.isModified("name")) {
     this.slug = slugify(this.name, { lower: true });
   }
 
-  // final price (server only)
   if (this.isModified("price") || this.isModified("discount")) {
     this.finalPrice =
       this.discount > 0
         ? Math.round(this.price - (this.price * this.discount) / 100)
         : this.price;
   }
+
 });
 
-gameSchema.pre("findOneAndUpdate", async function (next) {
+// Update middleware for findOneAndUpdate update price and slug if we update them
+gameSchema.pre("findOneAndUpdate", async function () {
   let update = this.getUpdate();
 
   if (!update) return;

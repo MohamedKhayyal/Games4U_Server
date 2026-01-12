@@ -175,3 +175,51 @@ exports.getFeaturedGames = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+// Bulk update offers for multiple games
+exports.bulkUpdateOffers = catchAsync(async (req, res, next) => {
+  const { filter = {}, discount, offerStart, offerEnd } = req.body;
+
+  if (discount === undefined) {
+    return next(new AppError("Discount is required", 400));
+  }
+
+  const games = await Game.find(filter);
+
+  if (!games.length) {
+    logger.warn("Bulk offers: no games matched filter");
+    return res.status(200).json({
+      status: "success",
+      matched: 0,
+      modified: 0,
+    });
+  }
+
+  let modified = 0;
+
+  for (const game of games) {
+    game.discount = discount;
+    game.offerStart = offerStart || null;
+    game.offerEnd = offerEnd || null;
+
+    game.finalPrice =
+      discount > 0
+        ? Math.round(game.price - (game.price * discount) / 100)
+        : game.price;
+
+    await game.save();
+    modified++;
+  }
+
+  logger.info(
+    `Bulk offers applied | Discount: ${discount}% | Games updated: ${modified}`
+  );
+
+  res.status(200).json({
+    status: "success",
+    matched: games.length,
+    modified,
+  });
+});
+
+
