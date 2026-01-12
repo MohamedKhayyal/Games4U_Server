@@ -4,29 +4,38 @@ const AppError = require("../utilts/app.Error");
 const catchAsync = require("../utilts/catch.Async");
 const logger = require("../utilts/logger");
 
+const calcFinalPrice = (price, discount = 0) =>
+  discount > 0 ? Math.round(price - (price * discount) / 100) : price;
+
 exports.createGame = catchAsync(async (req, res, next) => {
+  const { discount = 0, variants } = req.body;
+
+  ["primary", "secondary"].forEach((type) => {
+    const v = variants?.[type];
+    if (v?.enabled) {
+      v.finalPrice = calcFinalPrice(v.price, discount);
+    }
+  });
+
   const game = await Game.create({
     ...req.body,
     photo: req.body.photo,
+    variants,
   });
 
   logger.info(`Game created: ${game.name} (${game._id})`);
 
   res.status(201).json({
     status: "success",
-    data: {
-      game,
-    },
+    data: { game },
   });
 });
 
-exports.getAllGames = catchAsync(async (req, res, next) => {
+
+exports.getAllGames = catchAsync(async (req, res) => {
   const features = new APIFeatures(Game.find({ isActive: true }), req.query, [
-    "price",
-    "discount",
     "platform",
     "category",
-    "isFeatured",
     "sold",
     "createdAt",
   ])
@@ -36,10 +45,7 @@ exports.getAllGames = catchAsync(async (req, res, next) => {
     .paginate();
 
   const games = await features.query;
-  if (!games) {
-    logger.warn("No games found");
-    return next(new AppError("No games found", 404));
-  }
+
   res.status(200).json({
     status: "success",
     results: games.length,
@@ -54,46 +60,49 @@ exports.getGameBySlug = catchAsync(async (req, res, next) => {
   });
 
   if (!game) {
-    logger.warn(`Game not found with slug: ${req.params.slug}`);
     return next(new AppError("Game not found", 404));
   }
 
   res.status(200).json({
     status: "success",
-    data: {
-      game,
-    },
+    data: { game },
   });
 });
 
 exports.updateGame = catchAsync(async (req, res, next) => {
   if (!req.body || Object.keys(req.body).length === 0) {
+    logger.warn("Update game failed: empty body");
     return next(new AppError("No data provided for update", 400));
   }
 
   const game = await Game.findById(req.params.id);
-
   if (!game) {
-    logger.warn(`Update failed, game not found: ${req.params.id}`);
+    logger.warn(`Update game failed: game not found ${req.params.id}`);
     return next(new AppError("Game not found", 404));
   }
 
-  const forbiddenFields = ["sold", "rating", "finalPrice"];
-  forbiddenFields.forEach((field) => delete req.body[field]);
+  ["sold"].forEach((f) => delete req.body[f]);
 
-  Object.entries(req.body).forEach(([key, value]) => {
-    game[key] = value;
+  Object.assign(game, req.body);
+
+  const discount = game.discount || 0;
+
+  ["primary", "secondary"].forEach((type) => {
+    const variant = game.variants?.[type];
+    if (variant?.enabled && variant.price != null) {
+      variant.finalPrice = calcFinalPrice(variant.price, discount);
+    }
   });
 
   await game.save();
 
-  logger.info(`Game updated: ${game.name} (${game._id})`);
+  logger.info(
+    `Game updated successfully | ID: ${game._id} | Discount: ${discount}%`
+  );
 
   res.status(200).json({
     status: "success",
-    data: {
-      game,
-    },
+    data: { game },
   });
 });
 
@@ -105,23 +114,16 @@ exports.deleteGame = catchAsync(async (req, res, next) => {
   );
 
   if (!game) {
-    logger.warn(`Delete failed, game not found: ${req.params.id}`);
     return next(new AppError("Game not found", 404));
   }
 
-  logger.warn(`Game soft deleted: ${game.name} (${game._id})`);
+  logger.warn(`Game deleted: ${game.name}`);
 
-  res.status(204).json({
-    status: "success",
-    data: null,
-  });
+  res.status(204).json({ status: "success" });
 });
 
-exports.getBestSellers = catchAsync(async (req, res, next) => {
-  const games = await Game.find({
-    isActive: true,
-    sold: { $gt: 0 },
-  })
+exports.getBestSellers = catchAsync(async (req, res) => {
+  const games = await Game.find({ isActive: true, sold: { $gt: 0 } })
     .sort({ sold: -1 })
     .limit(10);
 
@@ -132,51 +134,25 @@ exports.getBestSellers = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.getOffers = catchAsync(async (req, res, next) => {
+exports.getOffers = catchAsync(async (req, res) => {
   const now = new Date();
 
   const games = await Game.find({
     isActive: true,
     discount: { $gt: 0 },
     $or: [
-      {
-        offerStart: { $lte: now },
-        offerEnd: { $gte: now },
-      },
-      {
-        offerStart: { $exists: false },
-        offerEnd: { $exists: false },
-      },
+      { offerStart: { $lte: now }, offerEnd: { $gte: now } },
+      { offerStart: null, offerEnd: null },
     ],
   });
 
   res.status(200).json({
     status: "success",
     results: games.length,
-    data: {
-      games,
-    },
+    data: { games },
   });
 });
 
-exports.getFeaturedGames = catchAsync(async (req, res, next) => {
-  const limit = Number(req.query.limit) || 6;
-
-  const games = await Game.find({
-    isActive: true,
-    isFeatured: true,
-  }).limit(limit);
-
-  res.status(200).json({
-    status: "success",
-    results: games.length,
-    data: {
-      games,
-    },
-  });
-});
-
-// Bulk update offers for multiple games
 exports.bulkUpdateOffers = catchAsync(async (req, res, next) => {
   const { filter = {}, discount, offerStart, offerEnd } = req.body;
 
@@ -187,7 +163,6 @@ exports.bulkUpdateOffers = catchAsync(async (req, res, next) => {
   const games = await Game.find(filter);
 
   if (!games.length) {
-    logger.warn("Bulk offers: no games matched filter");
     return res.status(200).json({
       status: "success",
       matched: 0,
@@ -202,18 +177,18 @@ exports.bulkUpdateOffers = catchAsync(async (req, res, next) => {
     game.offerStart = offerStart || null;
     game.offerEnd = offerEnd || null;
 
-    game.finalPrice =
-      discount > 0
-        ? Math.round(game.price - (game.price * discount) / 100)
-        : game.price;
+    ["primary", "secondary"].forEach((type) => {
+      const v = game.variants?.[type];
+      if (v?.enabled && v.price != null) {
+        v.finalPrice = calcFinalPrice(v.price, discount);
+      }
+    });
 
     await game.save();
     modified++;
   }
 
-  logger.info(
-    `Bulk offers applied | Discount: ${discount}% | Games updated: ${modified}`
-  );
+  logger.info(`Bulk offer applied | discount=${discount}% | games=${modified}`);
 
   res.status(200).json({
     status: "success",
@@ -221,5 +196,3 @@ exports.bulkUpdateOffers = catchAsync(async (req, res, next) => {
     modified,
   });
 });
-
-

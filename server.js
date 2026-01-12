@@ -14,8 +14,6 @@ const gameRoute = require("./routes/game.Route");
 const deviceRoute = require("./routes/device.Route");
 const bannerRoute = require("./routes/banner.Route");
 
-// const process = require("process");
-
 process.on("uncaughtException", (err) => {
   logger.error("UNCAUGHT EXCEPTION! Shutting down...");
   logger.error(`${err.name}: ${err.message}`);

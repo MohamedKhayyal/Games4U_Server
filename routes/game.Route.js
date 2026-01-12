@@ -8,7 +8,6 @@ const router = express.Router();
 router.get("/", gameController.getAllGames);
 router.get("/best-sellers", gameController.getBestSellers);
 router.get("/offers", gameController.getOffers);
-router.get("/featured", gameController.getFeaturedGames);
 
 router.patch(
   "/offers/bulk",

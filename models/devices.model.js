@@ -107,12 +107,10 @@ deviceSchema.pre("findOneAndUpdate", async function () {
 
   const data = update.$set ? update.$set : update;
 
-  // slug
   if (data.name) {
     data.slug = slugify(data.name, { lower: true });
   }
 
-  // final price
   if (data.price !== undefined || data.discount !== undefined) {
     const doc = await this.model.findOne(this.getQuery());
     if (!doc) return;
