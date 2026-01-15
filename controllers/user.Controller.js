@@ -23,3 +23,24 @@ exports.updateMyPhoto = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+exports.getMe = catchAsync(async (req, res, next) => {
+  if (!req.user) {
+    return res.status(200).json({
+      status: "success",
+      data: { user: null },
+    });
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      user: {
+        id: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        role: req.user.role,
+      },
+    },
+  });
+});

@@ -19,7 +19,7 @@ const corsOptions = {
     );
   },
 
-  credentials: true, 
+  credentials: true,
 
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
 
@@ -31,7 +31,7 @@ const corsOptions = {
 
   exposedHeaders: ["Set-Cookie"],
 
-  optionsSuccessStatus: 204, 
+  optionsSuccessStatus: 204,
 };
 
 module.exports = cors(corsOptions);
