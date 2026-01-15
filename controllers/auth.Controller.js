@@ -14,6 +14,7 @@ const signToken = (payload) =>
 const sendTokenCookie = (res, token) => {
   res.cookie("jwt", token, {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     maxAge:
       Number(process.env.JWT_COOKIE_EXPIRES_IN || 7) * 24 * 60 * 60 * 1000,

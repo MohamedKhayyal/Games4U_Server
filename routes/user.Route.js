@@ -13,4 +13,6 @@ router.patch(
   userController.updateMyPhoto
 );
 
+router.get("/me", auth.protect, userController.getMe);
+
 module.exports = router;
