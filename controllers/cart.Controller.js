@@ -77,9 +77,12 @@ exports.addToCart = catchAsync(async (req, res, next) => {
   });
 });
 
-
 exports.removeFromCart = catchAsync(async (req, res, next) => {
   const { itemId, itemType, variant } = req.body;
+
+  if (!itemId || !itemType) {
+    return next(new AppError("itemId and itemType are required", 400));
+  }
 
   const cart = await Cart.findOne({ user: req.user._id });
 
@@ -87,22 +90,29 @@ exports.removeFromCart = catchAsync(async (req, res, next) => {
     return next(new AppError("Cart not found", 404));
   }
 
-  const index = cart.items.findIndex(
+  const itemIndex = cart.items.findIndex(
     (i) =>
       i.item.toString() === itemId &&
       i.itemType === itemType &&
       i.variant === variant
   );
 
-  if (index === -1) {
+  if (itemIndex === -1) {
     return next(new AppError("Item not found in cart", 404));
   }
 
-  cart.items.splice(index, 1);
+  const cartItem = cart.items[itemIndex];
+
+  if (cartItem.quantity > 1) {
+    cartItem.quantity -= 1;
+  } else {
+    cart.items.splice(itemIndex, 1);
+  }
+
   await cart.save();
 
   logger.info(
-    `Item removed from cart | User: ${req.user._id} | ${itemType} | ItemId: ${itemId}`
+    `Cart item updated | User: ${req.user._id} | ${itemType} | ItemId: ${itemId}`
   );
 
   res.status(200).json({
@@ -110,7 +120,6 @@ exports.removeFromCart = catchAsync(async (req, res, next) => {
     data: { cart },
   });
 });
-
 
 exports.getMyCart = catchAsync(async (req, res) => {
   const cart = await Cart.findOne({ user: req.user._id }).populate(

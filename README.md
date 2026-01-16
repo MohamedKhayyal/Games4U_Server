@@ -114,11 +114,9 @@ The server will start on the port specified in the `.env` file (default: 5000).
 - `DELETE /api/banners/:id` - Delete banner (admin only)
 
 ### Cart
-- `GET /api/cart` - Get user's cart
-- `POST /api/cart/add` - Add item to cart
-- `PATCH /api/cart/:itemId` - Update cart item
-- `DELETE /api/cart/remove/:itemId` - Remove item from cart
-- `DELETE /api/cart` - Clear cart
+- `GET /api/cart/me` - Get user's cart
+- `POST /api/cart/items/add` - Add item to cart
+- `DELETE /api/cart/items/remove/:itemId` - Remove item from cart
 
 ### Orders
 - `GET /api/order` - Get user's orders
