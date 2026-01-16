@@ -34,7 +34,6 @@ app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 app.use("/img", express.static(path.join(__dirname, "uploads")));
 
-connectDB();
 
 app.use("/api/auth", authRoute);
 app.use("/api/users", userRoute);

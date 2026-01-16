@@ -7,7 +7,7 @@ const connectDB = async () => {
       dbName: process.env.DB_NAME,
     });
 
-    logger.info(`MongoDB Connected Tp Atlas`);
+    logger.info(`MongoDB Connected To Atlas`);
   } catch (error) {
     logger.error("MongoDB connection failed");
     logger.error(error.message);
