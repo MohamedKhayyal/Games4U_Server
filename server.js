@@ -29,14 +29,12 @@ process.on("uncaughtException", (err) => {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-/* ===================== MIDDLEWARES ===================== */
 app.use(corsHandler);
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 app.use("/img", express.static(path.join(__dirname, "uploads")));
 
-/* ===================== HEALTH CHECK ===================== */
 app.get("/", (req, res) => {
   res.status(200).json({
     status: "success",
@@ -44,7 +42,6 @@ app.get("/", (req, res) => {
   });
 });
 
-/* ===================== ROUTES ===================== */
 app.use("/api/auth", authRoute);
 app.use("/api/users", userRoute);
 app.use("/api/games", gameRoute);
@@ -53,18 +50,15 @@ app.use("/api/banners", bannerRoute);
 app.use("/api/cart", cartRoute);
 app.use("/api/order", orderRoute);
 
-/* ===================== NOT FOUND ===================== */
 app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
 });
 
-/* ===================== GLOBAL ERROR ===================== */
 app.use(errorHandler);
 
-/* ===================== START SERVER ===================== */
 const startServer = async () => {
   try {
-    await connectDB();
+    // await connectDB();
 
     const server = app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
