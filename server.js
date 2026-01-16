@@ -1,13 +1,17 @@
-const dotenv = require("dotenv");
-dotenv.config();
 const express = require("express");
 const path = require("path");
 const cookieParser = require("cookie-parser");
+
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
+
 const connectDB = require("./config/db.Config");
 const corsHandler = require("./middlewares/cors.Handler");
 const logger = require("./utilts/logger");
 const AppError = require("./utilts/app.Error");
 const errorHandler = require("./middlewares/error.Handler");
+
 const authRoute = require("./routes/auth.Route");
 const userRoute = require("./routes/user.Route");
 const gameRoute = require("./routes/game.Route");
@@ -18,23 +22,29 @@ const orderRoute = require("./routes/order.Route");
 
 process.on("uncaughtException", (err) => {
   logger.error("UNCAUGHT EXCEPTION! Shutting down...");
-  logger.error(`${err.name}: ${err.message}`);
-  logger.error(err.stack);
+  logger.error(err);
   process.exit(1);
 });
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
+/* ===================== MIDDLEWARES ===================== */
 app.use(corsHandler);
-
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-
 app.use(cookieParser());
 app.use("/img", express.static(path.join(__dirname, "uploads")));
 
+/* ===================== HEALTH CHECK ===================== */
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "success",
+    message: "Games4U API is running",
+  });
+});
 
+/* ===================== ROUTES ===================== */
 app.use("/api/auth", authRoute);
 app.use("/api/users", userRoute);
 app.use("/api/games", gameRoute);
@@ -43,12 +53,15 @@ app.use("/api/banners", bannerRoute);
 app.use("/api/cart", cartRoute);
 app.use("/api/order", orderRoute);
 
+/* ===================== NOT FOUND ===================== */
 app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
 });
 
+/* ===================== GLOBAL ERROR ===================== */
 app.use(errorHandler);
 
+/* ===================== START SERVER ===================== */
 const startServer = async () => {
   try {
     await connectDB();
