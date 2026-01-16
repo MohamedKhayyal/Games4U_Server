@@ -1,16 +1,13 @@
 const dotenv = require("dotenv");
 dotenv.config();
-
 const express = require("express");
 const path = require("path");
 const cookieParser = require("cookie-parser");
-
 const connectDB = require("./config/db.Config");
 const corsHandler = require("./middlewares/cors.Handler");
 const logger = require("./utilts/logger");
 const AppError = require("./utilts/app.Error");
 const errorHandler = require("./middlewares/error.Handler");
-
 const authRoute = require("./routes/auth.Route");
 const userRoute = require("./routes/user.Route");
 const gameRoute = require("./routes/game.Route");
@@ -21,17 +18,23 @@ const orderRoute = require("./routes/order.Route");
 
 process.on("uncaughtException", (err) => {
   logger.error("UNCAUGHT EXCEPTION! Shutting down...");
-  logger.error(err.name, err.message);
+  logger.error(`${err.name}: ${err.message}`);
+  logger.error(err.stack);
   process.exit(1);
 });
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
 app.use(corsHandler);
+
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+
 app.use(cookieParser());
 app.use("/img", express.static(path.join(__dirname, "uploads")));
+
+connectDB();
 
 app.use("/api/auth", authRoute);
 app.use("/api/users", userRoute);
@@ -41,42 +44,30 @@ app.use("/api/banners", bannerRoute);
 app.use("/api/cart", cartRoute);
 app.use("/api/order", orderRoute);
 
-app.get(process.env.HEALTH_CHECK_PATH || "/health", (req, res) => {
-  res.status(200).json({ status: "ok" });
-});
-
-app.all("*", (req, res, next) => {
+app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
 });
 
 app.use(errorHandler);
 
-let server;
-
 const startServer = async () => {
   try {
     await connectDB();
 
-    const PORT = process.env.PORT || 5000;
-    server = app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
     });
+
+    process.on("unhandledRejection", (err) => {
+      logger.error("UNHANDLED REJECTION! Shutting down...");
+      logger.error(err);
+
+      server.close(() => process.exit(1));
+    });
   } catch (err) {
-    logger.error("Failed to start server");
-    logger.error(err);
+    logger.error("Server failed to start due to DB error");
     process.exit(1);
   }
 };
 
 startServer();
-
-process.on("unhandledRejection", (err) => {
-  logger.error("UNHANDLED REJECTION! Shutting down...");
-  logger.error(err.name, err.message);
-
-  if (server) {
-    server.close(() => process.exit(1));
-  } else {
-    process.exit(1);
-  }
-});
