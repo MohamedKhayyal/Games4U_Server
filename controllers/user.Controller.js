@@ -9,7 +9,9 @@ exports.updateMyPhoto = catchAsync(async (req, res, next) => {
 
   const user = await User.findByIdAndUpdate(
     req.user._id,
-    { photo: req.body.photo },
+    {
+      photo: req.body.photo,
+    },
     {
       new: true,
       runValidators: true,
@@ -23,6 +25,7 @@ exports.updateMyPhoto = catchAsync(async (req, res, next) => {
     },
   });
 });
+
 
 exports.getMe = catchAsync(async (req, res, next) => {
   if (!req.user) {

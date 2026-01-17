@@ -14,8 +14,8 @@ const signToken = (payload) =>
 const sendTokenCookie = (res, token) => {
   res.cookie("jwt", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: true,
+    sameSite: "none",
     maxAge:
       Number(process.env.JWT_COOKIE_EXPIRES_IN || 7) * 24 * 60 * 60 * 1000,
   });
@@ -41,7 +41,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     name,
     email,
     password,
-    photo:req.body.photo,
+    photo: req.body.photo,
     role: "customer",
   });
 
@@ -158,8 +158,8 @@ exports.createAdmin = catchAsync(async (req, res, next) => {
 exports.logout = (req, res) => {
   res.cookie("jwt", "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: true,
+    sameSite: "none",
     expires: new Date(0),
   });
 
