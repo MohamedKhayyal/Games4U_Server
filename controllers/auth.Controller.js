@@ -41,6 +41,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     name,
     email,
     password,
+    photo:req.body.photo,
     role: "customer",
   });
 
@@ -61,7 +62,6 @@ exports.signup = catchAsync(async (req, res, next) => {
       email: user.email,
       photo: user.photo,
       role: user.role,
-      token,
     },
   });
 });
@@ -129,6 +129,7 @@ exports.createAdmin = catchAsync(async (req, res, next) => {
     name,
     email,
     password,
+    photo: req.body.photo,
     role: "admin",
   });
 
