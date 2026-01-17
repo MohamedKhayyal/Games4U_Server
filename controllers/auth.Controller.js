@@ -59,6 +59,7 @@ exports.signup = catchAsync(async (req, res, next) => {
       id: user._id,
       name: user.name,
       email: user.email,
+      photo: user.photo,
       role: user.role,
       token,
     },
@@ -102,6 +103,7 @@ exports.login = catchAsync(async (req, res, next) => {
       id: user._id,
       name: user.name,
       email: user.email,
+      photo: user.photo,
       role: user.role,
     },
   });
@@ -145,7 +147,24 @@ exports.createAdmin = catchAsync(async (req, res, next) => {
       id: admin._id,
       name: admin.name,
       email: admin.email,
+      photo: admin.photo,
       role: admin.role,
     },
   });
 });
+
+exports.logout = (req, res) => {
+  res.cookie("jwt", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    expires: new Date(0),
+  });
+
+  logger.info(`User logged out`);
+
+  res.status(200).json({
+    status: "success",
+    message: "Logged out successfully",
+  });
+};
