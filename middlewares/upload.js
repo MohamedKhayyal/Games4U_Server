@@ -27,17 +27,21 @@ exports.uploadSingle = (field) => (req, res, next) =>
 exports.uploadFields = (fields) => (req, res, next) =>
   upload.fields(fields)(req, res, next);
 
+// ✅ FIX: write images to root/uploads
 const writeImage = async (buffer, folder, filename, width, height) => {
-  const outputDir = path.join(__dirname, "..", "uploads", folder);
+  const outputDir = path.join(process.cwd(), "uploads", folder);
   await fs.promises.mkdir(outputDir, { recursive: true });
 
   const outPath = path.join(outputDir, filename);
 
   let pipeline = sharp(buffer);
-  if (width || height) pipeline = pipeline.resize(width, height);
+  if (width || height) {
+    pipeline = pipeline.resize(width, height);
+  }
 
-  await pipeline.toFormat("jpeg").jpeg({ quality: 90 }).toFile(outPath);
+  await pipeline.jpeg({ quality: 90 }).toFile(outPath);
 
+  // نخزن path اللي Express يفهمه
   return `/img/${folder}/${filename}`;
 };
 
@@ -49,7 +53,7 @@ exports.resize = catchAsync(async (req, res, next) => {
   const processFile = async (file, key) => {
     const config = IMAGE_CONFIG[key] || IMAGE_CONFIG.default;
     const filename = `${key}-${Date.now()}-${Math.round(
-      Math.random() * 1e9
+      Math.random() * 1e9,
     )}.jpeg`;
 
     return writeImage(
@@ -57,14 +61,14 @@ exports.resize = catchAsync(async (req, res, next) => {
       config.folder,
       filename,
       config.width,
-      config.height
+      config.height,
     );
   };
 
   if (req.file) {
     req.body[req.file.fieldname] = await processFile(
       req.file,
-      req.file.fieldname
+      req.file.fieldname,
     );
   }
 
@@ -75,8 +79,7 @@ exports.resize = catchAsync(async (req, res, next) => {
 
       const paths = [];
       for (const file of files) {
-        const imgPath = await processFile(file, key);
-        paths.push(imgPath);
+        paths.push(await processFile(file, key));
       }
 
       req.body[key] = paths.length === 1 ? paths[0] : paths;

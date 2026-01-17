@@ -20,20 +20,16 @@ const bannerRoute = require("./routes/banner.Route");
 const cartRoute = require("./routes/cart.Route");
 const orderRoute = require("./routes/order.Route");
 
-process.on("uncaughtException", (err) => {
-  logger.error("UNCAUGHT EXCEPTION! Shutting down...");
-  logger.error(err);
-  process.exit(1);
-});
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Middlewares
 app.use(corsHandler);
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
-app.use("/img", express.static(path.join(__dirname, "uploads")));
+
+app.use("/img", express.static(path.join(process.cwd(), "uploads")));
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -42,6 +38,7 @@ app.get("/", (req, res) => {
   });
 });
 
+// Routes
 app.use("/api/auth", authRoute);
 app.use("/api/users", userRoute);
 app.use("/api/games", gameRoute);
@@ -50,6 +47,7 @@ app.use("/api/banners", bannerRoute);
 app.use("/api/cart", cartRoute);
 app.use("/api/order", orderRoute);
 
+// 404
 app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
 });
@@ -61,18 +59,11 @@ const startServer = async () => {
     logger.info("Starting server...");
     await connectDB();
 
-    const server = app.listen(PORT, () => {
+    app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
     });
-
-    process.on("unhandledRejection", (err) => {
-      logger.error("UNHANDLED REJECTION! Shutting down...");
-      logger.error(err);
-
-      server.close(() => process.exit(1));
-    });
   } catch (err) {
-    logger.error("Server failed to start due to DB error");
+    logger.error("Server failed to start");
     process.exit(1);
   }
 };
