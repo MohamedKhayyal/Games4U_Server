@@ -28,7 +28,7 @@ exports.protect = catchAsync(async (req, res, next) => {
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
   const user = await User.findById(decoded.id).select(
-    "_id name email role"
+    "_id name email role photo"
   );
 
   if (!user) {
@@ -41,7 +41,6 @@ exports.protect = catchAsync(async (req, res, next) => {
   }
 
   req.user = user;
-
   next();
 });
 
