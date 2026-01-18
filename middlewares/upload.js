@@ -4,85 +4,110 @@ const multer = require("multer");
 const sharp = require("sharp");
 const catchAsync = require("../utilts/catch.Async");
 
-const IMAGE_CONFIG = {
-  photo: { folder: "users", width: 500, height: 500 },
-  image: { folder: "courses", width: 800, height: 800 },
-  default: { folder: "documents", width: 1000, height: null },
-};
-
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith("image/")) {
-      return cb(new Error("Only image files are allowed"), false);
-    }
-    cb(null, true);
+    if (file.mimetype && file.mimetype.startsWith("image")) cb(null, true);
+    else cb(new Error("Only images allowed"), false);
   },
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-exports.uploadSingle = (field) => (req, res, next) =>
-  upload.single(field)(req, res, next);
+exports.uploadSingle = (field) => (req, res, next) => {
+  const handler = upload.single(field);
+  handler(req, res, (err) => {
+    if (err) return next(err);
+    next();
+  });
+};
 
-exports.uploadFields = (fields) => (req, res, next) =>
-  upload.fields(fields)(req, res, next);
-
-// ✅ FIX: write images to root/uploads
-const writeImage = async (buffer, folder, filename, width, height) => {
-  const outputDir = path.join(process.cwd(), "uploads", folder);
-  await fs.promises.mkdir(outputDir, { recursive: true });
-
-  const outPath = path.join(outputDir, filename);
-
-  let pipeline = sharp(buffer);
-  if (width || height) {
-    pipeline = pipeline.resize(width, height);
-  }
-
-  await pipeline.jpeg({ quality: 90 }).toFile(outPath);
-
-  // نخزن path اللي Express يفهمه
-  return `/img/${folder}/${filename}`;
+exports.uploadFields = (fields) => (req, res, next) => {
+  const handler = upload.fields(fields);
+  handler(req, res, (err) => {
+    if (err) return next(err);
+    next();
+  });
 };
 
 exports.resize = catchAsync(async (req, res, next) => {
-  if (!req.file && (!req.files || Object.keys(req.files).length === 0)) {
+  if (!req.file && (!req.files || Object.keys(req.files).length === 0))
     return next();
-  }
 
-  const processFile = async (file, key) => {
-    const config = IMAGE_CONFIG[key] || IMAGE_CONFIG.default;
-    const filename = `${key}-${Date.now()}-${Math.round(
-      Math.random() * 1e9,
-    )}.jpeg`;
+  const writeImage = async (buffer, folder, filename, width, height) => {
+    const outputDir = path.join(process.cwd(), "uploads", folder);
+    await fs.promises.mkdir(outputDir, { recursive: true });
 
-    return writeImage(
-      file.buffer,
-      config.folder,
-      filename,
-      config.width,
-      config.height,
-    );
+    const outPath = path.join(outputDir, filename);
+
+    let pipeline = sharp(buffer);
+    if (width || height) {
+      pipeline = pipeline.resize(width || null, height || null);
+    }
+
+    await pipeline.jpeg({ quality: 90 }).toFile(outPath);
+
+    return `http://localhost:5000/img/${folder}/${filename}`;
   };
 
   if (req.file) {
-    req.body[req.file.fieldname] = await processFile(
-      req.file,
-      req.file.fieldname,
+    const field = req.file.fieldname || "file";
+    let folder = "uploads";
+    let width = null;
+    let height = null;
+
+    if (field === "photo") {
+      folder = "users";
+      width = 500;
+      height = 500;
+    } else if (field === "image") {
+      folder = "courses";
+      width = 800;
+      height = 800;
+    } else {
+      folder = "documents";
+      width = 1000;
+      height = null;
+    }
+
+    const filename = `${field}-${Date.now()}.jpeg`;
+    req.body[field] = await writeImage(
+      req.file.buffer,
+      folder,
+      filename,
+      width,
+      height,
     );
   }
 
-  if (req.files) {
+  if (req.files && Object.keys(req.files).length > 0) {
     for (const key of Object.keys(req.files)) {
-      const files = req.files[key];
-      if (!files || files.length === 0) continue;
+      const fileArr = req.files[key];
+      if (!fileArr || fileArr.length === 0) continue;
 
-      const paths = [];
-      for (const file of files) {
-        paths.push(await processFile(file, key));
+      const file = fileArr[0];
+
+      let folder = "documents";
+      let width = 1000;
+      let height = null;
+
+      if (key === "photo") {
+        folder = "users";
+        width = 500;
+        height = 500;
+      } else if (key === "image") {
+        folder = "courses";
+        width = 800;
+        height = 800;
       }
 
-      req.body[key] = paths.length === 1 ? paths[0] : paths;
+      const filename = `${key}-${Date.now()}.jpeg`;
+      req.body[key] = await writeImage(
+        file.buffer,
+        folder,
+        filename,
+        width,
+        height,
+      );
     }
   }
 

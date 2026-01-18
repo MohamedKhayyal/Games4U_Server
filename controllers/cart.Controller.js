@@ -50,7 +50,7 @@ exports.addToCart = catchAsync(async (req, res, next) => {
     (i) =>
       i.item.toString() === itemId &&
       i.itemType === itemType &&
-      i.variant === variant
+      i.variant === variant,
   );
 
   if (existingItem) {
@@ -68,7 +68,7 @@ exports.addToCart = catchAsync(async (req, res, next) => {
   await cart.save();
 
   logger.info(
-    `Item added to cart | User: ${req.user._id} | ${itemType} | ItemId: ${itemId}`
+    `Item added to cart | User: ${req.user._id} | ${itemType} | ItemId: ${itemId}`,
   );
 
   res.status(200).json({
@@ -94,7 +94,7 @@ exports.removeFromCart = catchAsync(async (req, res, next) => {
     (i) =>
       i.item.toString() === itemId &&
       i.itemType === itemType &&
-      i.variant === variant
+      i.variant === variant,
   );
 
   if (itemIndex === -1) {
@@ -112,7 +112,7 @@ exports.removeFromCart = catchAsync(async (req, res, next) => {
   await cart.save();
 
   logger.info(
-    `Cart item updated | User: ${req.user._id} | ${itemType} | ItemId: ${itemId}`
+    `Cart item updated | User: ${req.user._id} | ${itemType} | ItemId: ${itemId}`,
   );
 
   res.status(200).json({
@@ -124,7 +124,7 @@ exports.removeFromCart = catchAsync(async (req, res, next) => {
 exports.getMyCart = catchAsync(async (req, res) => {
   const cart = await Cart.findOne({ user: req.user._id }).populate(
     "items.item",
-    "name slug photo variants finalPrice price"
+    "name slug photo variants finalPrice price",
   );
 
   if (!cart) {
@@ -164,6 +164,7 @@ exports.getMyCart = catchAsync(async (req, res) => {
   res.status(200).json({
     status: "success",
     data: {
+      length: items.length,
       cart: {
         _id: cart._id,
         items,

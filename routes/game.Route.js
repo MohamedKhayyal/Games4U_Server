@@ -29,6 +29,8 @@ router.post(
 
 router.patch(
   "/:id",
+  uploadSingle("photo"),
+  resize,
   auth.protect,
   auth.restrictTo("admin"),
   gameController.updateGame
