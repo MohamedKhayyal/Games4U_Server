@@ -6,11 +6,11 @@ const auth = require("../middlewares/auth");
 const router = express.Router();
 
 router.patch(
-  "/me/photo",
+  "/me",
   auth.protect,
   uploadSingle("photo"),
   resize,
-  userController.updateMyPhoto
+  userController.updateMe
 );
 
 router.get("/me", auth.protect, userController.getMe);

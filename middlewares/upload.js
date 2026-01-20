@@ -37,21 +37,20 @@ exports.resize = catchAsync(async (req, res, next) => {
     const outputDir = path.join(process.cwd(), "uploads", folder);
     await fs.promises.mkdir(outputDir, { recursive: true });
 
-    const outPath = path.join(outputDir, filename);
+    let image = sharp(buffer);
+    if (width || height) image = image.resize(width, height);
 
-    let pipeline = sharp(buffer);
-    if (width || height) {
-      pipeline = pipeline.resize(width || null, height || null);
-    }
+    await image.jpeg({ quality: 90 }).toFile(
+      path.join(outputDir, filename)
+    );
 
-    await pipeline.jpeg({ quality: 90 }).toFile(outPath);
-
-    return `http://localhost:5000/img/${folder}/${filename}`;
+    // ✅ PATH فقط
+    return `/img/${folder}/${filename}`;
   };
 
   if (req.file) {
-    const field = req.file.fieldname || "file";
-    let folder = "uploads";
+    const field = req.file.fieldname;
+    let folder = "documents";
     let width = null;
     let height = null;
 
@@ -60,13 +59,9 @@ exports.resize = catchAsync(async (req, res, next) => {
       width = 500;
       height = 500;
     } else if (field === "image") {
-      folder = "courses";
+      folder = "games";
       width = 800;
       height = 800;
-    } else {
-      folder = "documents";
-      width = 1000;
-      height = null;
     }
 
     const filename = `${field}-${Date.now()}.jpeg`;
@@ -75,41 +70,10 @@ exports.resize = catchAsync(async (req, res, next) => {
       folder,
       filename,
       width,
-      height,
+      height
     );
-  }
-
-  if (req.files && Object.keys(req.files).length > 0) {
-    for (const key of Object.keys(req.files)) {
-      const fileArr = req.files[key];
-      if (!fileArr || fileArr.length === 0) continue;
-
-      const file = fileArr[0];
-
-      let folder = "documents";
-      let width = 1000;
-      let height = null;
-
-      if (key === "photo") {
-        folder = "users";
-        width = 500;
-        height = 500;
-      } else if (key === "image") {
-        folder = "courses";
-        width = 800;
-        height = 800;
-      }
-
-      const filename = `${key}-${Date.now()}.jpeg`;
-      req.body[key] = await writeImage(
-        file.buffer,
-        folder,
-        filename,
-        width,
-        height,
-      );
-    }
   }
 
   next();
 });
+

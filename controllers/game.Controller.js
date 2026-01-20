@@ -31,7 +31,6 @@ exports.createGame = catchAsync(async (req, res, next) => {
   });
 });
 
-
 exports.getAllGames = catchAsync(async (req, res) => {
   const features = new APIFeatures(Game.find({ isActive: true }), req.query, [
     "platform",
@@ -97,7 +96,7 @@ exports.updateGame = catchAsync(async (req, res, next) => {
   await game.save();
 
   logger.info(
-    `Game updated successfully | ID: ${game._id} | Discount: ${discount}%`
+    `Game updated successfully | ID: ${game._id} | Discount: ${discount}%`,
   );
 
   res.status(200).json({
@@ -110,7 +109,7 @@ exports.deleteGame = catchAsync(async (req, res, next) => {
   const game = await Game.findByIdAndUpdate(
     req.params.id,
     { isActive: false },
-    { new: true }
+    { new: true },
   );
 
   if (!game) {
@@ -123,14 +122,33 @@ exports.deleteGame = catchAsync(async (req, res, next) => {
 });
 
 exports.getBestSellers = catchAsync(async (req, res) => {
-  const games = await Game.find({ isActive: true, sold: { $gt: 0 } })
-    .sort({ sold: -1 })
-    .limit(10);
+  req.query.sort = req.query.sort || "-sold";
+  req.query.limit = req.query.limit || "10";
+
+  const baseQuery = Game.find({
+    isActive: true,
+    sold: { $gt: 0 },
+  });
+
+  const features = new APIFeatures(baseQuery, req.query, [
+    "price",
+    "sold",
+    "createdAt",
+    "name",
+  ])
+    .filter()
+    .sort()
+    .limitFields()
+    .paginate();
+
+  const games = await features.query;
 
   res.status(200).json({
     status: "success",
     results: games.length,
-    data: { games },
+    data: {
+      games,
+    },
   });
 });
 

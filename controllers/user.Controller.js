@@ -2,21 +2,29 @@ const User = require("../models/user.model");
 const AppError = require("../utilts/app.Error");
 const catchAsync = require("../utilts/catch.Async");
 
-exports.updateMyPhoto = catchAsync(async (req, res, next) => {
-  if (!req.body.photo) {
-    return next(new AppError("Please upload an image", 400));
+exports.updateMe = catchAsync(async (req, res, next) => {
+  if (req.body.password || req.body.passwordConfirm) {
+    return next(
+      new AppError(
+        "This route is not for password updates. Use /update-password",
+        400,
+      ),
+    );
   }
 
-  const user = await User.findByIdAndUpdate(
-    req.user._id,
-    {
-      photo: req.body.photo,
-    },
-    {
-      new: true,
-      runValidators: true,
+  const allowedFields = ["name", "photo"];
+  const filteredBody = {};
+
+  Object.keys(req.body).forEach((key) => {
+    if (allowedFields.includes(key)) {
+      filteredBody[key] = req.body[key];
     }
-  ).select("name email photo role");
+  });
+
+  const user = await User.findByIdAndUpdate(req.user._id, filteredBody, {
+    new: true,
+    runValidators: true,
+  }).select("name email photo role");
 
   res.status(200).json({
     status: "success",
@@ -25,7 +33,6 @@ exports.updateMyPhoto = catchAsync(async (req, res, next) => {
     },
   });
 });
-
 
 exports.getMe = catchAsync(async (req, res, next) => {
   if (!req.user) {
