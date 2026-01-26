@@ -7,7 +7,7 @@ if (process.env.NODE_ENV !== "production") {
 
 const connectDB = require("./config/db.Config");
 const corsHandler = require("./middlewares/cors.Handler");
-const logger = require("./utilts/logger");
+// const logger = require("./utilts/logger");
 const AppError = require("./utilts/app.Error");
 const errorHandler = require("./middlewares/error.Handler");
 
@@ -20,13 +20,15 @@ const cartRoute = require("./routes/cart.Route");
 const orderRoute = require("./routes/order.Route");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+// const PORT = process.env.PORT || 3000;
 
 // Middlewares
 app.use(corsHandler);
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
+
+connectDB();
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -50,18 +52,18 @@ app.use((req, res, next) => {
 
 app.use(errorHandler);
 
-const startServer = async () => {
-  try {
-    logger.info("Starting server...");
-    await connectDB();
+// const startServer = async () => {
+//   try {
+//     logger.info("Starting server...");
+//     await connectDB();
 
-    app.listen(PORT, () => {
-      logger.info(`Server running on port ${PORT}`);
-    });
-  } catch (err) {
-    logger.error("Server failed to start");
-    process.exit(1);
-  }
-};
+//     app.listen(PORT, () => {
+//       logger.info(`Server running on port ${PORT}`);
+//     });
+//   } catch (err) {
+//     logger.error("Server failed to start");
+//     process.exit(1);
+//   }
+// };
 
 startServer();
