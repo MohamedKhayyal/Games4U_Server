@@ -1,5 +1,4 @@
 const express = require("express");
-const path = require("path");
 const cookieParser = require("cookie-parser");
 
 if (process.env.NODE_ENV !== "production") {
@@ -29,8 +28,6 @@ app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 
-app.use("/img", express.static(path.join(process.cwd(), "uploads")));
-
 app.get("/", (req, res) => {
   res.status(200).json({
     status: "success",
@@ -47,7 +44,6 @@ app.use("/api/banners", bannerRoute);
 app.use("/api/cart", cartRoute);
 app.use("/api/order", orderRoute);
 
-// 404
 app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
 });

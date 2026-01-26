@@ -1,7 +1,10 @@
 const express = require("express");
 const deviceController = require("../controllers/device.Controller");
 const auth = require("../middlewares/auth");
-const { uploadSingle, resize } = require("../middlewares/upload");
+const {
+  uploadSingle,
+  uploadToCloudinary,
+} = require("../middlewares/upload.Cloudinary");
 
 const router = express.Router();
 
@@ -16,7 +19,7 @@ router.post(
   auth.protect,
   auth.restrictTo("admin"),
   uploadSingle("photo"),
-  resize,
+  uploadToCloudinary,
   deviceController.createDevice
 );
 
@@ -24,6 +27,8 @@ router.patch(
   "/:id",
   auth.protect,
   auth.restrictTo("admin"),
+  uploadSingle("photo"),
+  uploadToCloudinary,
   deviceController.updateDevice
 );
 

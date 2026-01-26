@@ -1,7 +1,10 @@
 const express = require("express");
 const bannerController = require("../controllers/banner.Controller");
 const auth = require("../middlewares/auth");
-const { uploadSingle, resize } = require("../middlewares/upload");
+const {
+  uploadSingle,
+  uploadToCloudinary,
+} = require("../middlewares/upload.Cloudinary");
 
 const router = express.Router();
 
@@ -12,7 +15,7 @@ router.post(
   auth.protect,
   auth.restrictTo("admin"),
   uploadSingle("image"),
-  resize,
+  uploadToCloudinary,
   bannerController.createBanner
 );
 
@@ -20,6 +23,8 @@ router.patch(
   "/:id",
   auth.protect,
   auth.restrictTo("admin"),
+  uploadSingle("image"),
+  uploadToCloudinary,
   bannerController.updateBanner
 );
 

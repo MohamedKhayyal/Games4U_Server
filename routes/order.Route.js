@@ -8,11 +8,20 @@ router.post("/", auth.protect, orderController.createOrder);
 
 router.get("/my-orders", auth.protect, orderController.getMyOrders);
 
+router.get("/:id", auth.protect, orderController.getOrderById);
+
 router.get(
-  "/admin",
+  "/",
   auth.protect,
   auth.restrictTo("admin"),
   orderController.getAllOrders
+);
+
+router.patch(
+  "/:id/status",
+  auth.protect,
+  auth.restrictTo("admin"),
+  orderController.updateOrderStatus
 );
 
 module.exports = router;

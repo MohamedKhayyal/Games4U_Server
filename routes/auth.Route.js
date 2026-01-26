@@ -1,11 +1,10 @@
 const express = require("express");
 const authController = require("../controllers/auth.Controller");
-const { uploadSingle, resize } = require("../middlewares/upload");
 const auth = require("../middlewares/auth");
 
 const router = express.Router();
 
-router.post("/signup", uploadSingle("photo"), resize, authController.signup);
+router.post("/signup",  authController.signup);
 router.post("/login", authController.login);
 router.post("/logout", authController.logout);
 

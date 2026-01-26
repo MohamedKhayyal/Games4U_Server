@@ -1,16 +1,15 @@
 const express = require("express");
-const { uploadSingle, resize } = require("../middlewares/upload");
-const userController = require("../controllers/user.Controller");
+const upload = require("../middlewares/upload.Cloudinary");
 const auth = require("../middlewares/auth");
-
+const userController = require("../controllers/user.Controller");
 const router = express.Router();
 
 router.patch(
   "/me",
   auth.protect,
-  uploadSingle("photo"),
-  resize,
-  userController.updateMe
+  upload.uploadSingle("photo"),
+  upload.uploadToCloudinary,
+  userController.updateMe,
 );
 
 router.get("/me", auth.protect, userController.getMe);

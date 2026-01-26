@@ -106,15 +106,106 @@ exports.getMyOrders = catchAsync(async (req, res, next) => {
 });
 
 exports.getAllOrders = catchAsync(async (req, res, next) => {
-  const orders = await Order.find()
+  // 🔐 تأكيد إن Admin بس
+  if (req.user.role !== "admin") {
+    return next(new AppError("You are not allowed to access this resource", 403));
+  }
+
+  /* =========================
+     Filters
+  ========================= */
+  const filter = {};
+  if (req.query.status) {
+    filter.status = req.query.status; // pending | confirmed | cancelled
+  }
+
+  /* =========================
+     Pagination
+  ========================= */
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  /* =========================
+     Query
+  ========================= */
+  const orders = await Order.find(filter)
     .populate("user", "name email")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
 
-  logger.info(`Admin fetched all orders | Count: ${orders.length}`);
+  const totalOrders = await Order.countDocuments(filter);
 
+  logger.info(
+    `Admin fetched orders | count=${orders.length} | page=${page}`
+  );
+
+  /* =========================
+     Response
+  ========================= */
   res.status(200).json({
     status: "success",
     results: orders.length,
-    data: { orders },
+    pagination: {
+      total: totalOrders,
+      page,
+      limit,
+      totalPages: Math.ceil(totalOrders / limit),
+    },
+    data: {
+      orders,
+    },
   });
 });
+
+
+exports.updateOrderStatus = catchAsync(async (req, res, next) => {
+  const { status } = req.body;
+
+  if (!["pending", "confirmed", "cancelled"].includes(status)) {
+    return next(new AppError("Invalid status", 400));
+  }
+
+  const order = await Order.findByIdAndUpdate(
+    req.params.id,
+    { status },
+    { new: true }
+  );
+
+  if (!order) {
+    return next(new AppError("Order not found", 404));
+  }
+
+  logger.warn("Order has been updated")
+
+  res.status(200).json({
+    status: "success",
+    data: { order },
+  });
+});
+
+exports.getOrderById = catchAsync(async (req, res, next) => {
+  const order = await Order.findById(req.params.id).populate(
+    "items.item",
+    "name photo"
+  );
+
+  if (!order) {
+    return next(new AppError("Order not found", 404));
+  }
+
+  if (
+    req.user.role !== "admin" &&
+    order.user.toString() !== req.user._id.toString()
+  ) {
+    return next(new AppError("You are not allowed to view this order", 403));
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: { order },
+  });
+});
+
+
