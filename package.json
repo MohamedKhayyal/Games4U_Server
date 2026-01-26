@@ -1,9 +1,12 @@
 {
   "name": "games4u",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "api/index.js",
+  "engines": {
+    "node": "18.x"
+  },
   "scripts": {
-    "dev": "nodemon",
+    "dev": "nodemon server.js",
     "start": "node server.js"
   },
   "keywords": [],
@@ -17,7 +20,6 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "fs": "^0.0.1-security",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.2",
     "morgan": "^1.10.1",
