@@ -18,6 +18,7 @@ const deviceRoute = require("./routes/device.Route");
 const bannerRoute = require("./routes/banner.Route");
 const cartRoute = require("./routes/cart.Route");
 const orderRoute = require("./routes/order.Route");
+const { model } = require("mongoose");
 
 const app = express();
 // const PORT = process.env.PORT || 3000;
@@ -66,4 +67,5 @@ app.use(errorHandler);
 //   }
 // };
 
-startServer();
+// startServer();
+module.exports = app;
