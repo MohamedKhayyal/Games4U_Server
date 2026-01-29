@@ -68,7 +68,7 @@ const gameSchema = new mongoose.Schema(
 
     category: {
       type: String,
-      enum: ["action", "sports", "rgp", "adventure", "fps", "platformer"],
+      enum: ["action", "sports", "rpg", "adventure", "platformer"],
       required: true,
       index: true,
     },
@@ -87,6 +87,12 @@ const gameSchema = new mongoose.Schema(
     sold: {
       type: Number,
       default: 0,
+      index: true,
+    },
+
+    isFeatured: {
+      type: Boolean,
+      default: false,
       index: true,
     },
 
