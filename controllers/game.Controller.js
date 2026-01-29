@@ -80,23 +80,25 @@ exports.updateGame = catchAsync(async (req, res, next) => {
     return next(new AppError("Game not found", 404));
   }
 
-  ["sold"].forEach((f) => delete req.body[f]);
+  ["sold", "photo"].forEach((f) => delete req.body[f]);
 
   Object.assign(game, req.body);
 
   const discount = game.discount || 0;
 
-  ["primary", "secondary"].forEach((type) => {
-    const variant = game.variants?.[type];
-    if (variant?.enabled && variant.price != null) {
-      variant.finalPrice = calcFinalPrice(variant.price, discount);
-    }
-  });
+  if (game.variants) {
+    ["primary", "secondary"].forEach((type) => {
+      const variant = game.variants[type];
+      if (variant?.enabled && variant.price != null) {
+        variant.finalPrice = calcFinalPrice(variant.price, discount);
+      }
+    });
+  }
 
   await game.save();
 
   logger.info(
-    `Game updated successfully | ID: ${game._id} | Discount: ${discount}%`,
+    `Game updated successfully | ID: ${game._id} | Discount: ${discount}%`
   );
 
   res.status(200).json({
@@ -104,6 +106,7 @@ exports.updateGame = catchAsync(async (req, res, next) => {
     data: { game },
   });
 });
+
 
 exports.deleteGame = catchAsync(async (req, res, next) => {
   const game = await Game.findByIdAndUpdate(
@@ -212,5 +215,15 @@ exports.bulkUpdateOffers = catchAsync(async (req, res, next) => {
     status: "success",
     matched: games.length,
     modified,
+  });
+});
+
+exports.getGameById = catchAsync(async (req, res, next) => {
+  const game = await Game.findById(req.params.id);
+  if (!game) return next(new AppError("Game not found", 404));
+
+  res.status(200).json({
+    status: "success",
+    data: { game },
   });
 });

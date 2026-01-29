@@ -1,4 +1,5 @@
 const Device = require("../models/devices.model");
+const APIFeatures = require("../utilts/api.features");
 const AppError = require("../utilts/app.Error");
 const catchAsync = require("../utilts/catch.Async");
 const logger = require("../utilts/logger");
@@ -93,20 +94,37 @@ exports.deleteDevice = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.getBestSellerDevices = catchAsync(async (req, res, next) => {
-  const devices = await Device.find({
+exports.getBestSellers = async (req, res) => {
+  req.query.sort = req.query.sort || "-sold";
+  req.query.limit = req.query.limit || "10";
+
+  const baseQuery = Device.find({
     isActive: true,
     sold: { $gt: 0 },
-  })
-    .sort({ sold: -1 })
-    .limit(10);
+  });
+
+  const features = new APIFeatures(baseQuery, req.query, [
+    "finalPrice",
+    "sold",
+    "createdAt",
+    "name",
+  ])
+    .filter()
+    .sort()
+    .limitFields()
+    .paginate();
+
+  const devices = await features.query;
 
   res.status(200).json({
     status: "success",
     results: devices.length,
-    data: { devices },
+    data: {
+      devices,
+    },
   });
-});
+};
+
 
 exports.getDeviceOffers = catchAsync(async (req, res, next) => {
   const now = new Date();

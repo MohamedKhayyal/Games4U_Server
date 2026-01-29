@@ -18,6 +18,7 @@ const deviceRoute = require("./routes/device.Route");
 const bannerRoute = require("./routes/banner.Route");
 const cartRoute = require("./routes/cart.Route");
 const orderRoute = require("./routes/order.Route");
+const adminRoute = require("./routes/admin.Route");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -51,6 +52,7 @@ app.use("/api/devices", deviceRoute);
 app.use("/api/banners", bannerRoute);
 app.use("/api/cart", cartRoute);
 app.use("/api/order", orderRoute);
+app.use("/api/admin", adminRoute);
 
 app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));

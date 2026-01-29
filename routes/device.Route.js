@@ -9,7 +9,7 @@ const {
 const router = express.Router();
 
 router.get("/", deviceController.getAllDevices);
-router.get("/best-sellers", deviceController.getBestSellerDevices);
+router.get("/best-sellers", deviceController.getBestSellers);
 router.get("/offers", deviceController.getDeviceOffers);
 router.get("/featured", deviceController.getFeaturedDevices);
 router.get("/:slug", deviceController.getDeviceBySlug);

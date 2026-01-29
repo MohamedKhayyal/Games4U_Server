@@ -60,7 +60,6 @@ exports.createOrder = catchAsync(async (req, res, next) => {
       item: item._id,
       itemTypeModel: cartItem.itemType === "game" ? "Game" : "Device",
 
-      // SNAPSHOT
       name: item.name,
       photo: item.photo,
 

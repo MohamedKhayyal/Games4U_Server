@@ -33,8 +33,6 @@ router.patch(
   "/:id",
   auth.protect,
   auth.restrictTo("admin"),
-  uploadSingle("photo"),
-  uploadToCloudinary,
   gameController.updateGame
 );
 
@@ -44,5 +42,7 @@ router.delete(
   auth.restrictTo("admin"),
   gameController.deleteGame
 );
+
+router.get("/id/:id", auth.protect, auth.restrictTo("admin"), gameController.getGameById);
 
 module.exports = router;
