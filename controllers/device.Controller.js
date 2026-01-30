@@ -174,3 +174,16 @@ exports.getDeviceById = async (req, res, next) => {
     },
   });
 };
+
+exports.toggleFeaturedDevice = catchAsync(async (req, res, next) => {
+  const device = await Device.findById(req.params.id);
+  if (!device) return next(new AppError("Device not found", 404));
+
+  device.isFeatured = !device.isFeatured;
+  await device.save();
+
+  res.status(200).json({
+    status: "success",
+    data: { isFeatured: device.isFeatured },
+  });
+});

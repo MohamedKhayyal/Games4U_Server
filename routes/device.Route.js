@@ -44,4 +44,12 @@ router.delete(
   deviceController.deleteDevice
 );
 
+router.patch(
+  "/:id/feature",
+  auth.protect,
+  auth.restrictTo("admin"),
+  deviceController.toggleFeaturedDevice
+);
+
+
 module.exports = router;

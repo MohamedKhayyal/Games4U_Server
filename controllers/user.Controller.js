@@ -55,3 +55,36 @@ exports.getMe = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+exports.getAllUsers = catchAsync(async (req, res) => {
+  const users = await User.find().select("-password");
+
+  res.status(200).json({
+    status: "success",
+    results: users.length,
+    data: { users },
+  });
+});
+
+exports.toggleAdminRole = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    return next(new AppError("User not found", 404));
+  }
+
+  if (user._id.toString() === req.user._id.toString()) {
+    return next(new AppError("You cannot change your own role", 400));
+  }
+
+  user.role = user.role === "admin" ? "customer" : "admin";
+  await user.save();
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      id: user._id,
+      role: user.role,
+    },
+  });
+});

@@ -14,4 +14,8 @@ router.patch(
 
 router.get("/me", auth.protect, userController.getMe);
 
+router.get("/", auth.protect, auth.restrictTo("admin"), userController.getAllUsers);
+
+router.patch("/:id/toggle-admin", auth.protect, auth.restrictTo("admin"), userController.toggleAdminRole);
+
 module.exports = router;

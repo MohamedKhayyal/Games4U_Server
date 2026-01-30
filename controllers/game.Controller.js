@@ -227,3 +227,16 @@ exports.getGameById = catchAsync(async (req, res, next) => {
     data: { game },
   });
 });
+
+exports.toggleFeaturedGame = catchAsync(async (req, res, next) => {
+  const game = await Game.findById(req.params.id);
+  if (!game) return next(new AppError("Game not found", 404));
+
+  game.isFeatured = !game.isFeatured;
+  await game.save();
+
+  res.status(200).json({
+    status: "success",
+    data: { isFeatured: game.isFeatured },
+  });
+});

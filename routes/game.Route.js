@@ -45,4 +45,11 @@ router.delete(
 
 router.get("/id/:id", auth.protect, auth.restrictTo("admin"), gameController.getGameById);
 
+router.patch(
+  "/:id/feature",
+  auth.protect,
+  auth.restrictTo("admin"),
+  gameController.toggleFeaturedGame
+);
+
 module.exports = router;
