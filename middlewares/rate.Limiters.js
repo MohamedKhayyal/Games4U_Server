@@ -1,12 +1,10 @@
 const rateLimit = require("express-rate-limit");
 const logger = require("../utilts/logger");
 
-/* =========================
-   GLOBAL API LIMIT
-   ========================= */
+// global limit
 exports.apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300,
+  windowMs: 15 * 60 * 1000,
+  max: 200,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
@@ -18,9 +16,7 @@ exports.apiLimiter = rateLimit({
   },
 });
 
-/* =========================
-   AUTH LIMIT (LOGIN / SIGNUP)
-   ========================= */
+// AUTH LIMIT (LOGIN / SIGNUP)
 exports.authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -35,11 +31,9 @@ exports.authLimiter = rateLimit({
   },
 });
 
-/* =========================
-   ADMIN LIMIT
-   ========================= */
+// ADMIN LIMIT
 exports.adminLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
+  windowMs: 60 * 1000,
   max: 120,
   standardHeaders: true,
   legacyHeaders: false,

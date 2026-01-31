@@ -17,7 +17,7 @@ const {
   adminLimiter,
 } = require("./middlewares/rate.Limiters");
 
-/* ===== Routes ===== */
+//Routes
 const authRoute = require("./routes/auth.Route");
 const userRoute = require("./routes/user.Route");
 const gameRoute = require("./routes/game.Route");
@@ -31,30 +31,24 @@ const logsRoutes = require("./routes/logs.Route");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-/* =========================
-   GLOBAL MIDDLEWARES
-   ========================= */
+// GLOBAL MIDDLEWARES
 app.use(corsHandler);
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 
-/* =========================
-   RATE LIMITERS
-   ========================= */
+// RATE LIMITERS
 
 // Global API
 app.use("/api", apiLimiter);
 
-// Auth (stronger)
+// Auth
 app.use("/api/auth", authLimiter, authRoute);
 
 // Admin (protected & limited)
 app.use("/api/admin", adminLimiter, adminRoute);
 
-/* =========================
-   PUBLIC / USER ROUTES
-   ========================= */
+// public
 app.use("/api/users", userRoute);
 app.use("/api/games", gameRoute);
 app.use("/api/devices", deviceRoute);
@@ -63,9 +57,6 @@ app.use("/api/cart", cartRoute);
 app.use("/api/order", orderRoute);
 app.use("/api/logs", logsRoutes);
 
-/* =========================
-   HEALTH CHECK
-   ========================= */
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     status: "ok",
@@ -81,32 +72,20 @@ app.get("/", (req, res) => {
   });
 });
 
-/* =========================
-   NOT FOUND
-   ========================= */
 app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
 });
 
-/* =========================
-   ERROR HANDLER
-   ========================= */
 app.use(errorHandler);
 
-/* =========================
-   START SERVER
-   ========================= */
 const startServer = async () => {
   try {
     logger.info("Starting server...");
     await connectDB();
 
-    const PORT = process.env.PORT || 3000;
-
     app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
     });
-
   } catch (err) {
     logger.error("Server failed to start", err);
     process.exit(1);
