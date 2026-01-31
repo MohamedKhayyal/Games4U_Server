@@ -1,6 +1,7 @@
 const rateLimit = require("express-rate-limit");
 const logger = require("../utilts/logger");
 
+// global limit
 exports.apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
@@ -15,6 +16,7 @@ exports.apiLimiter = rateLimit({
   },
 });
 
+// AUTH LIMIT (LOGIN / SIGNUP)
 exports.authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -29,6 +31,7 @@ exports.authLimiter = rateLimit({
   },
 });
 
+// ADMIN LIMIT
 exports.adminLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 120,
