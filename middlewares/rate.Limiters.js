@@ -1,13 +1,14 @@
-const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
+const rateLimit = require("express-rate-limit");
 const logger = require("../utilts/logger");
 
-// GLOBAL API LIMIT
+/* =========================
+   GLOBAL API LIMIT
+   ========================= */
 exports.apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: ipKeyGenerator,
   handler: (req, res) => {
     logger.warn(`API rate limit exceeded | IP: ${req.ip}`);
     res.status(429).json({
@@ -17,13 +18,14 @@ exports.apiLimiter = rateLimit({
   },
 });
 
-// AUTH LIMIT
+/* =========================
+   AUTH LIMIT (LOGIN / SIGNUP)
+   ========================= */
 exports.authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: ipKeyGenerator,
   handler: (req, res) => {
     logger.warn(`Auth brute force attempt | IP: ${req.ip}`);
     res.status(429).json({
@@ -33,13 +35,14 @@ exports.authLimiter = rateLimit({
   },
 });
 
-// ADMIN LIMIT
+/* =========================
+   ADMIN LIMIT
+   ========================= */
 exports.adminLimiter = rateLimit({
-  windowMs: 60 * 1000,
+  windowMs: 60 * 1000, // 1 minute
   max: 120,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: ipKeyGenerator,
   handler: (req, res) => {
     logger.warn(`Admin rate limit exceeded | IP: ${req.ip}`);
     res.status(429).json({

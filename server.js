@@ -17,7 +17,7 @@ const {
   adminLimiter,
 } = require("./middlewares/rate.Limiters");
 
-// Routes
+/* ===== Routes ===== */
 const authRoute = require("./routes/auth.Route");
 const userRoute = require("./routes/user.Route");
 const gameRoute = require("./routes/game.Route");
@@ -29,35 +29,32 @@ const adminRoute = require("./routes/admin.Route");
 const logsRoutes = require("./routes/logs.Route");
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-app.set("trust proxy", true);
-
-const PORT = process.env.PORT || 5000;
-
+/* =========================
+   GLOBAL MIDDLEWARES
+   ========================= */
+app.use(corsHandler);
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 
-app.get("/", (req, res) => {
-  res.status(200).json({
-    status: "success",
-    message: "Games4U API is running",
-  });
-});
+/* =========================
+   RATE LIMITERS
+   ========================= */
 
-app.get("/api/health", (req, res) => {
-  res.status(200).json({
-    status: "ok",
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-  });
-});
-
-app.use(corsHandler);
+// Global API
 app.use("/api", apiLimiter);
+
+// Auth (stronger)
 app.use("/api/auth", authLimiter, authRoute);
+
+// Admin (protected & limited)
 app.use("/api/admin", adminLimiter, adminRoute);
 
+/* =========================
+   PUBLIC / USER ROUTES
+   ========================= */
 app.use("/api/users", userRoute);
 app.use("/api/games", gameRoute);
 app.use("/api/devices", deviceRoute);
@@ -66,23 +63,51 @@ app.use("/api/cart", cartRoute);
 app.use("/api/order", orderRoute);
 app.use("/api/logs", logsRoutes);
 
+/* =========================
+   HEALTH CHECK
+   ========================= */
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "success",
+    message: "Games4U API is running",
+  });
+});
+
+/* =========================
+   NOT FOUND
+   ========================= */
 app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
 });
 
+/* =========================
+   ERROR HANDLER
+   ========================= */
 app.use(errorHandler);
 
+/* =========================
+   START SERVER
+   ========================= */
 const startServer = async () => {
-  logger.info("Starting server...");
+  try {
+    logger.info("Starting server...");
+    await connectDB();
 
-  app.listen(PORT, "0.0.0.0", () => {
-    logger.info(`Server running on port ${PORT}`);
-
-    connectDB()
-      .then(() => logger.info("DB connection attempt finished"))
-      .catch(() => { });
-  });
+    app.listen(PORT, () => {
+      logger.info(`Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    logger.error("Server failed to start", err);
+    process.exit(1);
+  }
 };
 
 startServer();
-
