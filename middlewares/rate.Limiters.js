@@ -1,12 +1,19 @@
 const rateLimit = require("express-rate-limit");
 const logger = require("../utilts/logger");
 
-// global limit
+/**
+ * ✅ Official helper from express-rate-limit
+ * Solves IPv6 + proxy issues
+ */
+const { ipKeyGenerator } = rateLimit;
+
+// GLOBAL API LIMIT
 exports.apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: ipKeyGenerator,
   handler: (req, res) => {
     logger.warn(`API rate limit exceeded | IP: ${req.ip}`);
     res.status(429).json({
@@ -22,6 +29,7 @@ exports.authLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: ipKeyGenerator,
   handler: (req, res) => {
     logger.warn(`Auth brute force attempt | IP: ${req.ip}`);
     res.status(429).json({
@@ -37,6 +45,7 @@ exports.adminLimiter = rateLimit({
   max: 120,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: ipKeyGenerator,
   handler: (req, res) => {
     logger.warn(`Admin rate limit exceeded | IP: ${req.ip}`);
     res.status(429).json({

@@ -17,7 +17,7 @@ const {
   adminLimiter,
 } = require("./middlewares/rate.Limiters");
 
-//Routes
+// Routes
 const authRoute = require("./routes/auth.Route");
 const userRoute = require("./routes/user.Route");
 const gameRoute = require("./routes/game.Route");
@@ -29,15 +29,22 @@ const adminRoute = require("./routes/admin.Route");
 const logsRoutes = require("./routes/logs.Route");
 
 const app = express();
-// app.set("trust proxy", 1);
+
+app.set("trust proxy", true);
+
 const PORT = process.env.PORT || 3000;
 
-// GLOBAL MIDDLEWARES
 app.use(corsHandler);
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "success",
+    message: "Games4U API is running",
+  });
+});
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({
@@ -47,25 +54,10 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-app.get("/", (req, res) => {
-  res.status(200).json({
-    status: "success",
-    message: "Games4U API is running",
-  });
-});
-
-// RATE LIMITERS
-
-// Global API
 app.use("/api", apiLimiter);
-
-// Auth
 app.use("/api/auth", authLimiter, authRoute);
-
-// Admin (protected & limited)
 app.use("/api/admin", adminLimiter, adminRoute);
 
-// public
 app.use("/api/users", userRoute);
 app.use("/api/games", gameRoute);
 app.use("/api/devices", deviceRoute);
@@ -85,7 +77,7 @@ const startServer = async () => {
     logger.info("Starting server...");
     await connectDB();
 
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
       logger.info(`Server running on port ${PORT}`);
     });
   } catch (err) {
@@ -95,4 +87,3 @@ const startServer = async () => {
 };
 
 startServer();
- 
