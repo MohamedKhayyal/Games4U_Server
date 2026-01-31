@@ -1,11 +1,5 @@
-const rateLimit = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const logger = require("../utilts/logger");
-
-/**
- * ✅ Official helper from express-rate-limit
- * Solves IPv6 + proxy issues
- */
-const { ipKeyGenerator } = rateLimit;
 
 // GLOBAL API LIMIT
 exports.apiLimiter = rateLimit({
@@ -23,7 +17,7 @@ exports.apiLimiter = rateLimit({
   },
 });
 
-// AUTH LIMIT (LOGIN / SIGNUP)
+// AUTH LIMIT
 exports.authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
