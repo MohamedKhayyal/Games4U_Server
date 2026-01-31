@@ -73,17 +73,16 @@ app.use((req, res, next) => {
 app.use(errorHandler);
 
 const startServer = async () => {
-  try {
-    logger.info("Starting server...");
-    await connectDB();
+  logger.info("Starting server...");
 
-    app.listen(PORT, "0.0.0.0", () => {
-      logger.info(`Server running on port ${PORT}`);
-    });
-  } catch (err) {
-    logger.error("Server failed to start", err);
-    process.exit(1);
-  }
+  app.listen(PORT, "0.0.0.0", () => {
+    logger.info(`Server running on port ${PORT}`);
+
+    connectDB()
+      .then(() => logger.info("DB connection attempt finished"))
+      .catch(() => { });
+  });
 };
 
 startServer();
+
