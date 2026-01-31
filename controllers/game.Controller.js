@@ -230,13 +230,25 @@ exports.getGameById = catchAsync(async (req, res, next) => {
 
 exports.toggleFeaturedGame = catchAsync(async (req, res, next) => {
   const game = await Game.findById(req.params.id);
-  if (!game) return next(new AppError("Game not found", 404));
+  if (!game) {
+    logger.warn(`Toggle featured game failed | Game not found | ID: ${req.params.id}`);
+    return next(new AppError("Game not found", 404));
+  }
 
+  const oldValue = game.isFeatured;
   game.isFeatured = !game.isFeatured;
   await game.save();
 
+  logger.info(
+    `Game featured toggled | Admin: ${req.user._id} | Game: ${game._id} | ${oldValue} → ${game.isFeatured}`
+  );
+
   res.status(200).json({
     status: "success",
-    data: { isFeatured: game.isFeatured },
+    data: {
+      id: game._id,
+      isFeatured: game.isFeatured,
+    },
   });
 });
+

@@ -1,27 +1,13 @@
 const express = require("express");
 const auth = require("../middlewares/auth");
-const adminControlle = require("../controllers/admin.Controller");
+const adminController = require("../controllers/admin.Controller");
 
 const router = express.Router();
 
+router.use(auth.protect, auth.restrictTo("admin"));
 
-router.get(
-    "/stats",
-    auth.protect,
-    auth.restrictTo("admin"),
-    adminControlle.getAdminStats
-);
-router.get(
-    "/orders-stats",
-    auth.protect,
-    auth.restrictTo("admin"),
-    adminControlle.getOrdersStats
-);
-router.get(
-    "/best-sellers",
-    auth.protect,
-    auth.restrictTo("admin"),
-    adminControlle.getBestSellers
-);
+router.get("/stats", adminController.getAdminStats);
+router.get("/orders-stats", adminController.getOrdersStats);
+router.get("/best-sellers", adminController.getBestSellers);
 
 module.exports = router;

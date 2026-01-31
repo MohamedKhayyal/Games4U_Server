@@ -10,10 +10,10 @@ const router = express.Router();
 
 router.get("/", bannerController.getActiveBanners);
 
+router.use(auth.protect, auth.restrictTo("admin"));
+
 router.post(
   "/",
-  auth.protect,
-  auth.restrictTo("admin"),
   uploadSingle("image"),
   uploadToCloudinary,
   bannerController.createBanner
@@ -21,18 +21,11 @@ router.post(
 
 router.patch(
   "/:id",
-  auth.protect,
-  auth.restrictTo("admin"),
   uploadSingle("image"),
   uploadToCloudinary,
   bannerController.updateBanner
 );
 
-router.delete(
-  "/:id",
-  auth.protect,
-  auth.restrictTo("admin"),
-  bannerController.deleteBanner
-);
+router.delete("/:id", bannerController.deleteBanner);
 
 module.exports = router;

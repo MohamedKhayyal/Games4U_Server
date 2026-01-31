@@ -177,13 +177,25 @@ exports.getDeviceById = async (req, res, next) => {
 
 exports.toggleFeaturedDevice = catchAsync(async (req, res, next) => {
   const device = await Device.findById(req.params.id);
-  if (!device) return next(new AppError("Device not found", 404));
+  if (!device) {
+    logger.warn(`Toggle featured device failed | Device not found | ID: ${req.params.id}`);
+    return next(new AppError("Device not found", 404));
+  }
 
+  const oldValue = device.isFeatured;
   device.isFeatured = !device.isFeatured;
   await device.save();
 
+  logger.info(
+    `Device featured toggled | Admin: ${req.user._id} | Device: ${device._id} | ${oldValue} → ${device.isFeatured}`
+  );
+
   res.status(200).json({
     status: "success",
-    data: { isFeatured: device.isFeatured },
+    data: {
+      id: device._id,
+      isFeatured: device.isFeatured,
+    },
   });
 });
+

@@ -4,8 +4,10 @@ const auth = require("../middlewares/auth");
 
 const router = express.Router();
 
-router.post("/items", auth.protect, cartController.addToCart);
-router.post("/items/remove", auth.protect, cartController.removeFromCart);
-router.get("/me", auth.protect, cartController.getMyCart);
+router.use(auth.protect);
+
+router.post("/items", cartController.addToCart);
+router.post("/items/remove", cartController.removeFromCart);
+router.get("/me", cartController.getMyCart);
 
 module.exports = router;

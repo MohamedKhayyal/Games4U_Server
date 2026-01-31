@@ -1,6 +1,7 @@
 const User = require("../models/user.model");
 const AppError = require("../utilts/app.Error");
 const catchAsync = require("../utilts/catch.Async");
+const logger = require("../utilts/logger")
 
 exports.updateMe = catchAsync(async (req, res, next) => {
   if (req.body.password || req.body.passwordConfirm) {
@@ -67,24 +68,35 @@ exports.getAllUsers = catchAsync(async (req, res) => {
 });
 
 exports.toggleAdminRole = catchAsync(async (req, res, next) => {
-  const user = await User.findById(req.params.id);
+  const targetUser = await User.findById(req.params.id);
 
-  if (!user) {
+  if (!targetUser) {
+    logger.warn(
+      `Toggle admin role failed | User not found | Target ID: ${req.params.id}`
+    );
     return next(new AppError("User not found", 404));
   }
 
-  if (user._id.toString() === req.user._id.toString()) {
+  if (targetUser._id.toString() === req.user._id.toString()) {
+    logger.warn(
+      `Admin tried to change own role | Admin ID: ${req.user._id}`
+    );
     return next(new AppError("You cannot change your own role", 400));
   }
 
-  user.role = user.role === "admin" ? "customer" : "admin";
-  await user.save();
+  const oldRole = targetUser.role;
+  targetUser.role = oldRole === "admin" ? "customer" : "admin";
+  await targetUser.save();
+
+  logger.info(
+    `User role updated | Admin: ${req.user.name}, ${req.user._id}| Target: ${targetUser.name}, ${targetUser._id}  | ${oldRole} → ${targetUser.role}`
+  );
 
   res.status(200).json({
     status: "success",
     data: {
-      id: user._id,
-      role: user.role,
+      id: targetUser._id,
+      role: targetUser.role,
     },
   });
 });
