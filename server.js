@@ -32,7 +32,7 @@ const app = express();
 
 app.set("trust proxy", true);
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.BACK4APP ? 3000 : process.env.PORT || 3000;
 
 app.use(corsHandler);
 app.use(express.json({ limit: "10kb" }));
