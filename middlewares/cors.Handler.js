@@ -1,12 +1,14 @@
 const cors = require("cors");
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",")
+  ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
   : [];
 
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      return callback(null, true);
+    }
 
     if (allowedOrigins.length === 0) {
       return callback(null, true);
@@ -16,14 +18,18 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    return callback(null, false);
+    return callback(new Error("Not allowed by CORS"));
   },
 
   credentials: true,
 
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
 
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+  ],
 
   exposedHeaders: ["Set-Cookie"],
 
