@@ -252,3 +252,17 @@ exports.toggleFeaturedGame = catchAsync(async (req, res, next) => {
   });
 });
 
+exports.getFeaturedGames = async (req, res) => {
+  const games = await Game.find({
+    isFeatured: true,
+    isActive: true,
+  }).sort("-createdAt");
+
+  res.status(200).json({
+    status: "success",
+    results: games.length,
+    data: {
+      games,
+    },
+  });
+};
