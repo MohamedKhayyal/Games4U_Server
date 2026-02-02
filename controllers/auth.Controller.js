@@ -6,21 +6,38 @@ const catchAsync = require("../utilts/catch.Async");
 
 const EMAIL_REGEX = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 
-const signToken = (payload) =>
+/* =======================
+   Token helpers
+======================= */
+const signAccessToken = (payload) =>
   jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN,
+    expiresIn: process.env.JWT_EXPIRES_IN, // 15m
   });
 
-const sendTokenCookie = (res, token) => {
-  res.cookie("jwt", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    maxAge:
-      Number(process.env.JWT_COOKIE_EXPIRES_IN || 7) * 24 * 60 * 60 * 1000,
+const signRefreshToken = (payload) =>
+  jwt.sign(payload, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN, // 30d
   });
+
+const cookieOptions = (maxAge) => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  maxAge,
+});
+
+const sendAuthCookies = (res, accessToken, refreshToken) => {
+  res.cookie("accessToken", accessToken, cookieOptions(15 * 60 * 1000)); // 15 min
+  res.cookie(
+    "refreshToken",
+    refreshToken,
+    cookieOptions(30 * 24 * 60 * 60 * 1000) // 30 days
+  );
 };
 
+/* =======================
+   Signup
+======================= */
 exports.signup = catchAsync(async (req, res, next) => {
   const { name, email, password } = req.body;
 
@@ -45,14 +62,18 @@ exports.signup = catchAsync(async (req, res, next) => {
     role: "customer",
   });
 
-  const token = signToken({
+  const accessToken = signAccessToken({
     id: user._id,
     role: user.role,
   });
 
-  sendTokenCookie(res, token);
+  const refreshToken = signRefreshToken({
+    id: user._id,
+  });
 
-  logger.info(`User signed up: ${email} (${user.role})`);
+  sendAuthCookies(res, accessToken, refreshToken);
+
+  logger.info(`User signed up: ${email}`);
 
   res.status(201).json({
     status: "success",
@@ -66,11 +87,10 @@ exports.signup = catchAsync(async (req, res, next) => {
   });
 });
 
+/* =======================
+   Login
+======================= */
 exports.login = catchAsync(async (req, res, next) => {
-  if (!req.body) {
-    return next(new AppError("Request body is missing", 400));
-  }
-
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -79,21 +99,20 @@ exports.login = catchAsync(async (req, res, next) => {
 
   const user = await User.findOne({ email }).select("+password");
 
-  if (!user) {
+  if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new AppError("Invalid email or password", 401));
   }
 
-  const isCorrect = await user.correctPassword(password, user.password);
-  if (!isCorrect) {
-    return next(new AppError("Invalid email or password", 401));
-  }
-
-  const token = signToken({
+  const accessToken = signAccessToken({
     id: user._id,
     role: user.role,
   });
 
-  sendTokenCookie(res, token);
+  const refreshToken = signRefreshToken({
+    id: user._id,
+  });
+
+  sendAuthCookies(res, accessToken, refreshToken);
 
   logger.info(`User logged in: ${email}`);
 
@@ -104,66 +123,51 @@ exports.login = catchAsync(async (req, res, next) => {
       name: user.name,
       email: user.email,
       photo: user.photo,
-      token,
       role: user.role,
     },
   });
 });
 
-exports.createAdmin = catchAsync(async (req, res, next) => {
-  const { name, email, password } = req.body;
+/* =======================
+   Refresh Token
+======================= */
+exports.refreshToken = catchAsync(async (req, res, next) => {
+  const refreshToken = req.cookies.refreshToken;
 
-  if (!name || !email || !password) {
-    return next(new AppError("Name, email and password are required", 400));
+  if (!refreshToken) {
+    return next(new AppError("No refresh token provided", 401));
   }
 
-  if (!EMAIL_REGEX.test(email)) {
-    return next(new AppError("Please provide a valid email address", 400));
+  let decoded;
+  try {
+    decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+  } catch {
+    return next(new AppError("Invalid or expired refresh token", 401));
   }
 
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    return next(new AppError("Email already exists", 409));
+  const user = await User.findById(decoded.id);
+  if (!user) {
+    return next(new AppError("User no longer exists", 401));
   }
 
-  const admin = await User.create({
-    name,
-    email,
-    password,
-    photo: req.body.photo,
-    role: "admin",
+  const newAccessToken = signAccessToken({
+    id: user._id,
+    role: user.role,
   });
 
-  const token = signToken({
-    id: admin._id,
-    role: admin.role,
-  });
+  res.cookie("accessToken", newAccessToken, cookieOptions(15 * 60 * 1000));
 
-  sendTokenCookie(res, token);
-
-  logger.warn(`ADMIN CREATED: ${email}`);
-
-  res.status(201).json({
-    status: "success",
-    user: {
-      id: admin._id,
-      name: admin.name,
-      email: admin.email,
-      photo: admin.photo,
-      role: admin.role,
-    },
-  });
+  res.status(200).json({ status: "success" });
 });
 
+/* =======================
+   Logout
+======================= */
 exports.logout = (req, res) => {
-  res.cookie("jwt", "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    expires: new Date(0),
-  });
+  res.cookie("accessToken", "", { expires: new Date(0) });
+  res.cookie("refreshToken", "", { expires: new Date(0) });
 
-  logger.info(`User logged out`);
+  logger.info("User logged out");
 
   res.status(200).json({
     status: "success",

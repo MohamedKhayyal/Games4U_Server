@@ -4,13 +4,13 @@ const AppError = require("../utilts/app.Error");
 const catchAsync = require("../utilts/catch.Async");
 const logger = require("../utilts/logger");
 
-exports.createDevice = catchAsync(async (req, res, next) => {
+exports.createDevice = catchAsync(async (req, res) => {
   const device = await Device.create({
     ...req.body,
     photo: req.body.photo,
   });
 
-  logger.info(`Device created: ${device.name} (${device._id})`);
+  logger.info(`Device created: ${device.name}`);
 
   res.status(201).json({
     status: "success",
@@ -18,8 +18,28 @@ exports.createDevice = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.getAllDevices = catchAsync(async (req, res, next) => {
-  const devices = await Device.find({ isActive: true });
+exports.getActiveDevices = catchAsync(async (req, res) => {
+  const features = new APIFeatures(
+    Device.find({ isActive: true }),
+    req.query,
+    ["price", "sold", "createdAt"]
+  )
+    .filter()
+    .sort()
+    .limitFields()
+    .paginate();
+
+  const devices = await features.query;
+
+  res.status(200).json({
+    status: "success",
+    results: devices.length,
+    data: { devices },
+  });
+});
+
+exports.getAllDevicesAdmin = catchAsync(async (req, res) => {
+  const devices = await Device.find().sort("-createdAt");
 
   res.status(200).json({
     status: "success",
@@ -35,9 +55,18 @@ exports.getDeviceBySlug = catchAsync(async (req, res, next) => {
   });
 
   if (!device) {
-    logger.warn(`Device not found with slug: ${req.params.slug}`);
     return next(new AppError("Device not found", 404));
   }
+
+  res.status(200).json({
+    status: "success",
+    data: { device },
+  });
+});
+
+exports.getDeviceById = catchAsync(async (req, res, next) => {
+  const device = await Device.findById(req.params.id);
+  if (!device) return next(new AppError("Device not found", 404));
 
   res.status(200).json({
     status: "success",
@@ -46,27 +75,16 @@ exports.getDeviceBySlug = catchAsync(async (req, res, next) => {
 });
 
 exports.updateDevice = catchAsync(async (req, res, next) => {
-  if (!req.body || Object.keys(req.body).length === 0) {
-    return next(new AppError("No data provided for update", 400));
-  }
-
   const device = await Device.findById(req.params.id);
+  if (!device) return next(new AppError("Device not found", 404));
 
-  if (!device) {
-    logger.warn(`Update failed, device not found: ${req.params.id}`);
-    return next(new AppError("Device not found", 404));
-  }
+  ["sold", "finalPrice"].forEach((f) => delete req.body[f]);
 
-  const forbiddenFields = ["sold", "finalPrice"];
-  forbiddenFields.forEach((field) => delete req.body[field]);
-
-  Object.entries(req.body).forEach(([key, value]) => {
-    device[key] = value;
-  });
+  Object.assign(device, req.body);
 
   await device.save();
 
-  logger.info(`Device updated: ${device.name} (${device._id})`);
+  logger.info(`Device updated: ${device.name}`);
 
   res.status(200).json({
     status: "success",
@@ -75,120 +93,42 @@ exports.updateDevice = catchAsync(async (req, res, next) => {
 });
 
 exports.deleteDevice = catchAsync(async (req, res, next) => {
-  const device = await Device.findByIdAndUpdate(
-    req.params.id,
-    { isActive: false },
-    { new: true }
-  );
-
-  if (!device) {
-    logger.warn(`Delete failed, device not found: ${req.params.id}`);
-    return next(new AppError("Device not found", 404));
-  }
-
-  logger.warn(`Device soft deleted: ${device.name} (${device._id})`);
-
-  res.status(204).json({
-    status: "success",
-    data: null,
-  });
-});
-
-exports.getBestSellers = async (req, res) => {
-  req.query.sort = req.query.sort || "-sold";
-  req.query.limit = req.query.limit || "10";
-
-  const baseQuery = Device.find({
-    isActive: true,
-    sold: { $gt: 0 },
-  });
-
-  const features = new APIFeatures(baseQuery, req.query, [
-    "finalPrice",
-    "sold",
-    "createdAt",
-    "name",
-  ])
-    .filter()
-    .sort()
-    .limitFields()
-    .paginate();
-
-  const devices = await features.query;
-
-  res.status(200).json({
-    status: "success",
-    results: devices.length,
-    data: {
-      devices,
-    },
-  });
-};
-
-
-exports.getDeviceOffers = catchAsync(async (req, res, next) => {
-  const now = new Date();
-
-  const devices = await Device.find({
-    isActive: true,
-    discount: { $gt: 0 },
-    $or: [
-      { offerStart: { $lte: now }, offerEnd: { $gte: now } },
-      { offerStart: { $exists: false }, offerEnd: { $exists: false } },
-    ],
-  });
-
-  res.status(200).json({
-    status: "success",
-    results: devices.length,
-    data: { devices },
-  });
-});
-
-exports.getFeaturedDevices = catchAsync(async (req, res, next) => {
-  const limit = Number(req.query.limit) || 6;
-
-  const devices = await Device.find({
-    isActive: true,
-    isFeatured: true,
-  }).limit(limit);
-
-  res.status(200).json({
-    status: "success",
-    results: devices.length,
-    data: { devices },
-  });
-});
-
-exports.getDeviceById = async (req, res, next) => {
   const device = await Device.findById(req.params.id);
+  if (!device) return next(new AppError("Device not found", 404));
 
-  if (!device) {
-    return next(new AppError("Device not found", 404));
-  }
+  device.isActive = false;
+  await device.save();
+
+  logger.warn(`Device deactivated: ${device.name}`);
+
+  res.status(200).json({
+    status: "success",
+    message: "Device deactivated",
+  });
+});
+
+exports.toggleActiveDevice = catchAsync(async (req, res, next) => {
+  const device = await Device.findById(req.params.id);
+  if (!device) return next(new AppError("Device not found", 404));
+
+  device.isActive = !device.isActive;
+  await device.save();
 
   res.status(200).json({
     status: "success",
     data: {
-      device,
+      id: device._id,
+      isActive: device.isActive,
     },
   });
-};
+});
 
 exports.toggleFeaturedDevice = catchAsync(async (req, res, next) => {
   const device = await Device.findById(req.params.id);
-  if (!device) {
-    logger.warn(`Toggle featured device failed | Device not found | ID: ${req.params.id}`);
-    return next(new AppError("Device not found", 404));
-  }
+  if (!device) return next(new AppError("Device not found", 404));
 
-  const oldValue = device.isFeatured;
   device.isFeatured = !device.isFeatured;
   await device.save();
-
-  logger.info(
-    `Device featured toggled | Admin: ${req.user._id} | Device: ${device._id} | ${oldValue} → ${device.isFeatured}`
-  );
 
   res.status(200).json({
     status: "success",
@@ -199,3 +139,60 @@ exports.toggleFeaturedDevice = catchAsync(async (req, res, next) => {
   });
 });
 
+exports.getFeaturedDevices = catchAsync(async (req, res) => {
+  const limit = Number(req.query.limit) || 10;
+
+  const devices = await Device.find({
+    isFeatured: true,
+    isActive: true,
+  })
+    .sort("-createdAt")
+    .limit(limit);
+
+  res.status(200).json({
+    status: "success",
+    results: devices.length,
+    data: { devices },
+  });
+});
+
+exports.getBestSellers = catchAsync(async (req, res) => {
+  req.query.sort ||= "-sold";
+  req.query.limit ||= "10";
+
+  const features = new APIFeatures(
+    Device.find({ isActive: true, sold: { $gt: 0 } }),
+    req.query,
+    ["finalPrice", "sold", "createdAt"]
+  )
+    .filter()
+    .sort()
+    .paginate();
+
+  const devices = await features.query;
+
+  res.status(200).json({
+    status: "success",
+    results: devices.length,
+    data: { devices },
+  });
+});
+
+exports.getDeviceOffers = catchAsync(async (req, res) => {
+  const now = new Date();
+
+  const devices = await Device.find({
+    isActive: true,
+    discount: { $gt: 0 },
+    $or: [
+      { offerStart: { $lte: now }, offerEnd: { $gte: now } },
+      { offerStart: null, offerEnd: null },
+    ],
+  });
+
+  res.status(200).json({
+    status: "success",
+    results: devices.length,
+    data: { devices },
+  });
+});

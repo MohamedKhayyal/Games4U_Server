@@ -4,6 +4,9 @@ const { sendFail } = require("../utilts/response");
 const STATUS_CODES = require("../utilts/response.Codes");
 const catchAsync = require("../utilts/catch.Async");
 
+/* =======================
+   Protect
+======================= */
 exports.protect = catchAsync(async (req, res, next) => {
   let token;
 
@@ -12,30 +15,40 @@ exports.protect = catchAsync(async (req, res, next) => {
     req.headers.authorization.startsWith("Bearer")
   ) {
     token = req.headers.authorization.split(" ")[1];
-  } else if (req.cookies && req.cookies.jwt) {
-    token = req.cookies.jwt;
+  } else if (req.cookies && req.cookies.accessToken) {
+    token = req.cookies.accessToken;
   }
 
   if (!token) {
     return sendFail(
       res,
       {},
-      "You are not logged in. Please log in to access this route.",
+      "You are not logged in",
       STATUS_CODES.UNAUTHORIZED
     );
   }
 
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
+    return sendFail(
+      res,
+      {},
+      "Invalid or expired token",
+      STATUS_CODES.UNAUTHORIZED
+    );
+  }
 
   const user = await User.findById(decoded.id).select(
-    "_id name email role photo"
+    "name email role photo"
   );
 
   if (!user) {
     return sendFail(
       res,
       {},
-      "User belonging to this token no longer exists.",
+      "User belonging to this token no longer exists",
       STATUS_CODES.UNAUTHORIZED
     );
   }
@@ -44,13 +57,16 @@ exports.protect = catchAsync(async (req, res, next) => {
   next();
 });
 
+/* =======================
+   Restrict To Roles
+======================= */
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
       return sendFail(
         res,
         {},
-        "You do not have permission to perform this action.",
+        "You do not have permission to perform this action",
         STATUS_CODES.FORBIDDEN
       );
     }
