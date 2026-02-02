@@ -22,11 +22,10 @@ exports.getActiveBanners = catchAsync(async (req, res, next) => {
 
   const banners = await Banner.find({
     isActive: true,
-    startDate: { $lte: now },
-    endDate: { $gte: now },
-  })
-    .sort({ position: 1 })
-    .limit(10);
+    startDate: { $lte: new Date() },
+    endDate: { $gte: new Date() },
+  }).sort("position");
+
 
   res.status(200).json({
     status: "success",
@@ -35,15 +34,47 @@ exports.getActiveBanners = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.updateBanner = catchAsync(async (req, res, next) => {
-  const banner = await Banner.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-    runValidators: true,
+exports.getAllBanners = catchAsync(async (req, res) => {
+  const banners = await Banner.find().sort("position");
+
+  res.status(200).json({
+    status: "success",
+    results: banners.length,
+    data: { banners },
   });
+});
+
+exports.getBanner = async (req, res) => {
+  const banner = await Banner.findById(req.params.id);
 
   if (!banner) {
-    return next(new AppError("Banner not found", 404));
+    return res.status(404).json({ message: "Banner not found" });
   }
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      banner,
+    },
+  });
+};
+
+exports.updateBanner = catchAsync(async (req, res, next) => {
+  const banner = await Banner.findById(req.params.id);
+  if (!banner) return next(new AppError("Banner not found", 404));
+
+  banner.title = req.body.title ?? banner.title;
+  banner.description = req.body.description ?? banner.description;
+  banner.discountText = req.body.discountText ?? banner.discountText;
+  banner.startDate = req.body.startDate ?? banner.startDate;
+  banner.endDate = req.body.endDate ?? banner.endDate;
+  banner.position = req.body.position ?? banner.position;
+
+  if (req.file?.path) {
+    banner.image = req.file.path;
+  }
+
+  await banner.save();
 
   logger.info(`Banner updated: ${banner.title}`);
 
@@ -54,13 +85,37 @@ exports.updateBanner = catchAsync(async (req, res, next) => {
 });
 
 exports.deleteBanner = catchAsync(async (req, res, next) => {
-  const banner = await Banner.findByIdAndDelete(req.params.id);
+  const banner = await Banner.findById(req.params.id);
 
   if (!banner) {
     return next(new AppError("Banner not found", 404));
   }
 
-  logger.warn(`Banner deleted: ${banner.title}`);
+  banner.isActive = false;
+  await banner.save();
 
-  res.status(204).json({ status: "success" });
+  logger.warn(`Banner soft deleted (disabled): ${banner.title}`);
+
+  res.status(200).json({
+    status: "success",
+    message: "Banner disabled successfully",
+  });
 });
+
+exports.toggleBannerActive = async (req, res) => {
+  const banner = await Banner.findById(req.params.id);
+  if (!banner) {
+    return res.status(404).json({ message: "Banner not found" });
+  }
+
+  banner.isActive = !banner.isActive;
+  await banner.save();
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      id: banner._id,
+      isActive: banner.isActive,
+    },
+  });
+};

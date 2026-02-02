@@ -12,6 +12,8 @@ router.get("/", bannerController.getActiveBanners);
 
 router.use(auth.protect, auth.restrictTo("admin"));
 
+router.get("/admin", bannerController.getAllBanners);
+
 router.post(
   "/",
   uploadSingle("image"),
@@ -24,6 +26,16 @@ router.patch(
   uploadSingle("image"),
   uploadToCloudinary,
   bannerController.updateBanner
+);
+
+router.get(
+  "/:id",
+  bannerController.getBanner
+);
+
+router.patch(
+  "/:id/toggle-active",
+  bannerController.toggleBannerActive
 );
 
 router.delete("/:id", bannerController.deleteBanner);
